@@ -1,17 +1,21 @@
 package monitoring
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/emicklei/hazana"
+	google_protobuf2 "github.com/golang/protobuf/ptypes/timestamp"
+	stm "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
 var report = `
 {
-	"startedAt": "2017-08-25T15:54:41.43681012+02:00",
-	"finishedAt": "2017-08-25T15:54:51.470388711+02:00",
+	"startedAt": "2017-08-25T20:17:41.43681012+02:00",
+	"finishedAt": "2017-08-25T20:17:51.470388711+02:00",
 	"configuration": {
 		"rps": 10,
 		"attackTimeSec": 20,
@@ -19,7 +23,7 @@ var report = `
 		"maxAttackers": 10,
 		"verbose": true,
 		"metadata": {
-			"metric.type": "custom.googleapis.com/myservice",
+			"metric.type": "custom.googleapis.com/myservice2"
 		}
 	},
 	"metrics": {
@@ -68,17 +72,39 @@ var report = `
 			"errors": null
 		}
 	}
-}
-`
+}`
 
 func TestSendReport(t *testing.T) {
-	//t.Skip() // first change YOURPROJECT into a StackDriver enabled GCP project
+	t.Skip() // first change YOURPROJECT into a StackDriver enabled GCP project
+	// second, change the finishedAt time in the JSON report above to match the current time.
 	r := hazana.RunReport{}
-	json.NewDecoder(strings.NewReader(report)).Decode(&r)
-	//d, err := NewStackDriver("YOURPROJECT")
-	d, err := NewStackDriver("kramp-hub")
+	if err := json.NewDecoder(strings.NewReader(report)).Decode(&r); err != nil {
+		t.Fatal("cannot read JSON ", err)
+	}
+	d, err := NewStackDriver("YOURPROJECT")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(d.Send(r))
+	if err := d.Send(r); err != nil {
+		t.Error(err)
+	}
+	req := stm.GetMetricDescriptorRequest{
+		Name: "projects/kramp-hub/metricDescriptors/custom.googleapis.com/myservice2",
+	}
+	resp, _ := d.client.GetMetricDescriptor(context.Background(), &req)
+	t.Logf("%#v", resp)
+
+	lr := stm.ListTimeSeriesRequest{
+		Name: "projects/kramp-hub",
+		Interval: &stm.TimeInterval{
+			StartTime: &google_protobuf2.Timestamp{
+				Seconds: (time.Now().Add(-60 * time.Second)).Unix(),
+			},
+			EndTime: &google_protobuf2.Timestamp{
+				Seconds: (time.Now().Add(60 * time.Second)).Unix(),
+			},
+		},
+	}
+	ts := d.client.ListTimeSeries(context.Background(), &lr)
+	t.Logf("%#v", ts)
 }
