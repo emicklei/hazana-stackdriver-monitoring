@@ -54,15 +54,26 @@ func (s *StackDriver) Send(report hazana.RunReport) error {
 		metricType = "custom.googleapis.com/missing-metric-type"
 	}
 	for sample, each := range report.Metrics {
-		metric := &metricpb.Metric{
-			Type: metricType,
-			Labels: map[string]string{
-				"sample": sample,
-			},
-		}
-		dataPoint := newDatapoint(report.FinishedAt, (float64(each.Latencies.Mean.Nanoseconds()) / 1.0e6)) // ms
-		if err := s.createTimeSeries(dataPoint, metric, resource); err != nil {
-			return err
+		for _, point := range []struct {
+			key   string
+			value float64
+		}{
+			{key: "mean", value: float64(each.Latencies.Mean.Nanoseconds()) / 1.0e6}, // ms
+			{key: "max", value: float64(each.Latencies.Max.Nanoseconds()) / 1.0e6},   // ms
+			{key: "99th", value: float64(each.Latencies.P99.Nanoseconds()) / 1.0e6},  // ms
+			{key: "success", value: each.Success * 100},
+		} {
+			metric := &metricpb.Metric{
+				Type: metricType,
+				Labels: map[string]string{
+					"sample": sample,
+					"name":   point.key,
+				},
+			}
+			dataPoint := newDatapoint(report.FinishedAt, point.value)
+			if err := s.createTimeSeries(dataPoint, metric, resource); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
