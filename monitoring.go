@@ -37,7 +37,7 @@ func (s *StackDriver) Send(report hazana.RunReport) error {
 	// collect labels from metadata
 	for k, v := range report.Configuration.Metadata {
 		if strings.HasPrefix(k, "resource.label.") {
-			// Note: v must be a recognized resource label. TODO where is this documented?
+			// Note: v must be a recognized resource label. https://cloud.google.com/monitoring/custom-metrics/creating-metrics
 			resourceLabels[k[len("resource.label."):]] = v
 		}
 	}
@@ -53,6 +53,7 @@ func (s *StackDriver) Send(report hazana.RunReport) error {
 	if !ok {
 		metricType = "custom.googleapis.com/missing-metric-type"
 	}
+	timeSeries := []*monitoringpb.TimeSeries{}
 	for sample, each := range report.Metrics {
 		for _, point := range []struct {
 			key   string
@@ -67,31 +68,33 @@ func (s *StackDriver) Send(report hazana.RunReport) error {
 				Type: metricType,
 				Labels: map[string]string{
 					"sample": sample,
-					"name":   point.key,
+					"field":  point.key,
 				},
 			}
 			dataPoint := newDatapoint(report.FinishedAt, point.value)
-			if err := s.createTimeSeries(dataPoint, metric, resource); err != nil {
-				return err
-			}
+			timeSeries = append(timeSeries, newTimeSeries(dataPoint, metric, resource))
 		}
+	}
+	if err := s.createTimeSeries(timeSeries); err != nil {
+		return err
 	}
 	return nil
 }
 
-func (s *StackDriver) createTimeSeries(
-	dataPoint *monitoringpb.Point,
+func newTimeSeries(dataPoint *monitoringpb.Point,
 	metric *metricpb.Metric,
-	resource *monitoredrespb.MonitoredResource) error {
+	resource *monitoredrespb.MonitoredResource) *monitoringpb.TimeSeries {
+	return &monitoringpb.TimeSeries{
+		Metric:   metric,
+		Resource: resource,
+		Points:   []*monitoringpb.Point{dataPoint},
+	}
+}
+
+func (s *StackDriver) createTimeSeries(timeSeries []*monitoringpb.TimeSeries) error {
 	return s.client.CreateTimeSeries(s.ctx, &monitoringpb.CreateTimeSeriesRequest{
-		Name: stackmoni.MetricProjectPath(s.projectID),
-		TimeSeries: []*monitoringpb.TimeSeries{
-			{
-				Metric:   metric,
-				Resource: resource,
-				Points:   []*monitoringpb.Point{dataPoint},
-			},
-		},
+		Name:       stackmoni.MetricProjectPath(s.projectID),
+		TimeSeries: timeSeries,
 	})
 }
 
