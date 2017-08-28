@@ -89,13 +89,13 @@ func TestSendReport(t *testing.T) {
 		t.Error(err)
 	}
 	req := stm.GetMetricDescriptorRequest{
-		Name: "projects/kramp-hub/metricDescriptors/custom.googleapis.com/myservice2",
+		Name: "projects/YOURPROJECT/metricDescriptors/custom.googleapis.com/myservice2",
 	}
 	resp, _ := d.client.GetMetricDescriptor(context.Background(), &req)
 	t.Logf("%#v", resp)
 
 	lr := stm.ListTimeSeriesRequest{
-		Name: "projects/kramp-hub",
+		Name: "projects/YOURPROJECT",
 		Interval: &stm.TimeInterval{
 			StartTime: &google_protobuf2.Timestamp{
 				Seconds: (time.Now().Add(-60 * time.Second)).Unix(),
