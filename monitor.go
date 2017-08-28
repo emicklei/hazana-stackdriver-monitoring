@@ -18,7 +18,7 @@ type Monitor struct {
 
 // NewMonitor returns a new Monitor decoration on an Attack
 func NewMonitor(a hazana.Attack, s *StackDriver) *Monitor {
-	return &Monitor{Attack: a, driver: s, dataPoints: []*monitoringpb.Point{}, mutex: new(sync.Mutex)}
+	return &Monitor{Attack: a, driver: s, dataPoints: map[string][]*monitoringpb.Point{}, mutex: new(sync.Mutex)}
 }
 
 // Do is part of hazana.Attack
@@ -31,9 +31,9 @@ func (m *Monitor) Do() hazana.DoResult {
 	if !ok {
 		points = []*monitoringpb.Point{}
 	}
-	points = append(points, newDatapoint(after, after.Sub(before).Nanoseconds()))
+	points = append(points, newDatapoint(after, float64(after.Sub(before).Nanoseconds())))
 	m.dataPoints[result.RequestLabel] = points
-	m.mutex.UnLock()
+	m.mutex.Unlock()
 	return result
 }
 
@@ -48,7 +48,7 @@ func (m *Monitor) Clone() hazana.Attack {
 		Attack: m.Attack.Clone(),
 		// share the rest
 		driver:     m.driver,
-		mutext:     m.mutex,
+		mutex:      m.mutex,
 		dataPoints: m.dataPoints,
 	}
 }

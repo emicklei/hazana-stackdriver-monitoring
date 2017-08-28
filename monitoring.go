@@ -33,6 +33,9 @@ func NewStackDriver(projectID string) (*StackDriver, error) {
 
 // Send will sends metrics to StackDriver using measurements of a samples.
 func (s *StackDriver) Send(report hazana.RunReport) error {
+	if report.Metrics == nil || len(report.Metrics) == 0 {
+		return nil
+	}
 	resourceLabels := map[string]string{"project_id": s.projectID}
 	// collect labels from metadata
 	for k, v := range report.Configuration.Metadata {
