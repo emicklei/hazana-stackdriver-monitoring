@@ -11,11 +11,11 @@ import (
 	pb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
-// go run main.go projects/kramphub-toolshed-shared/metricDescriptors/custom.googleapis.com%2Fstepconnector%2Fv1
+// go run main.go projects/<project>/metricDescriptors/custom.googleapis.com%2Fstepconnector%2Fv1
 
 // DOES NOT WORK At the time of writing
 
-// 2017/09/04 15:40:55 Get error: rpc error: code = PermissionDenied desc = User ernest@kramphub.com does not have permission to see metric custom.googleapis.com/stepconnector/v1
+// 2017/09/04 15:40:55 Get error: rpc error: code = PermissionDenied desc = User <user> does not have permission to see metric custom.googleapis.com/stepconnector/v1
 // 2017/09/04 15:40:56 Delete error:rpc error: code = InvalidArgument desc = Field name had an invalid value of "custom.googleapis.com/stepconnector/v1": The metric type must be a URL-formatted string with a domain and non-empty path.
 
 func main() {

@@ -8,7 +8,7 @@ import (
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
-// Monitor is a Attack decorator that send metrics to graphite
+// Monitor is an Attack decorator that send latency metrics to Stackdriver
 type Monitor struct {
 	hazana.Attack
 	driver     *StackDriver
