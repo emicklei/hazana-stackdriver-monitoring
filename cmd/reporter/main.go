@@ -30,7 +30,7 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to create driver ", err)
 	}
-	err = driver.Send(report)
+	err = driver.SendReport(report)
 	if err != nil {
 		log.Fatal("failed to send metrics ", err)
 	}
