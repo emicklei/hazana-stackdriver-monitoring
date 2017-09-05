@@ -31,31 +31,14 @@ func NewStackDriver(projectID string) (*StackDriver, error) {
 	return &StackDriver{client: client, projectID: projectID, ctx: ctx}, nil
 }
 
-// Send will sends metrics to StackDriver using measurements of a samples.
-func (s *StackDriver) Send(report hazana.RunReport) error {
+// SendReport will sends metrics to StackDriver using measurements of a samples.
+func (s *StackDriver) SendReport(report hazana.RunReport) error {
 	if report.Metrics == nil || len(report.Metrics) == 0 {
 		return nil
 	}
-	resourceLabels := map[string]string{"project_id": s.projectID}
-	// collect labels from metadata
-	for k, v := range report.Configuration.Metadata {
-		if strings.HasPrefix(k, "resource.label.") {
-			// Note: v must be a recognized resource label. https://cloud.google.com/monitoring/custom-metrics/creating-metrics
-			resourceLabels[k[len("resource.label."):]] = v
-		}
-	}
-	resourceType, ok := report.Configuration.Metadata["resource.type"]
-	if !ok {
-		resourceType = "global"
-	}
-	resource := &monitoredrespb.MonitoredResource{
-		Type:   resourceType,
-		Labels: resourceLabels,
-	}
-	metricType, ok := report.Configuration.Metadata["metric.type"]
-	if !ok {
-		metricType = "custom.googleapis.com/missing-metric-type"
-	}
+	metricType := s.metricType(report.Configuration)
+	resource := s.newResource(report.Configuration)
+
 	timeSeries := []*monitoringpb.TimeSeries{}
 	for sample, each := range report.Metrics {
 		for _, point := range []struct {
@@ -84,6 +67,58 @@ func (s *StackDriver) Send(report hazana.RunReport) error {
 		return err
 	}
 	return nil
+}
+
+// SendMonitor sends the datapoints as timeseries to Stackdriver
+func (s *StackDriver) SendMonitor(monitor *Monitor, config hazana.Config) error {
+	timeSeries := []*monitoringpb.TimeSeries{}
+	resource := s.newResource(config)
+	for label, points := range monitor.dataPoints {
+		metric := &metricpb.Metric{
+			Type: s.metricType(config),
+			Labels: map[string]string{
+				"requestLabel": label,
+				"field":        "duration",
+			},
+		}
+		series := &monitoringpb.TimeSeries{
+			Metric:   metric,
+			Resource: resource,
+			Points:   points,
+		}
+		timeSeries = append(timeSeries, series)
+	}
+	if err := s.createTimeSeries(timeSeries); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *StackDriver) metricType(config hazana.Config) string {
+	metricType, ok := config.Metadata["metric.type"]
+	if !ok {
+		metricType = "custom.googleapis.com/missing-metric-type"
+	}
+	return metricType
+}
+
+func (s *StackDriver) newResource(config hazana.Config) *monitoredrespb.MonitoredResource {
+	resourceLabels := map[string]string{"project_id": s.projectID}
+	// collect labels from metadata
+	for k, v := range config.Metadata {
+		if strings.HasPrefix(k, "resource.label.") {
+			// Note: v must be a recognized resource label. https://cloud.google.com/monitoring/custom-metrics/creating-metrics
+			resourceLabels[k[len("resource.label."):]] = v
+		}
+	}
+	resourceType, ok := config.Metadata["resource.type"]
+	if !ok {
+		resourceType = "global"
+	}
+	return &monitoredrespb.MonitoredResource{
+		Type:   resourceType,
+		Labels: resourceLabels,
+	}
 }
 
 func newTimeSeries(dataPoint *monitoringpb.Point,
