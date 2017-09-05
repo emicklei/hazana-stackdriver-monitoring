@@ -2,6 +2,7 @@ package monitoring
 
 import (
 	"context"
+	"log"
 	"strings"
 	"time"
 
@@ -87,6 +88,9 @@ func (s *StackDriver) SendMonitor(monitor *Monitor, config hazana.Config) error 
 			Points:   points,
 		}
 		timeSeries = append(timeSeries, series)
+		if config.Verbose {
+			log.Printf("collected [%d] datapoints for label [%s]\n", len(points), label)
+		}
 	}
 	if err := s.createTimeSeries(timeSeries); err != nil {
 		return err
