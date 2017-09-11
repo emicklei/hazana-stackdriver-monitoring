@@ -13,7 +13,7 @@ import (
 
 func main() {
 	log.Println("hazana stackdriver reporting")
-	// pick up a report from the arg and send it to stackdriver
+	// pick up a report from the arg and send it to stackdriver (metrics + logging)
 	data, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
 		log.Fatal("reading report failed ", err)
@@ -34,4 +34,5 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to send metrics ", err)
 	}
+	driver.LogReport(report)
 }

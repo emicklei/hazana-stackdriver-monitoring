@@ -2,10 +2,12 @@ package monitoring
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strings"
 	"time"
 
+	logging "cloud.google.com/go/logging"
 	"github.com/emicklei/hazana"
 
 	stackmoni "cloud.google.com/go/monitoring/apiv3"
@@ -17,19 +19,37 @@ import (
 
 // StackDriver provides the api to send a hazana.RunReport
 type StackDriver struct {
-	client    *stackmoni.MetricClient
-	projectID string
-	ctx       context.Context
+	metricsClient *stackmoni.MetricClient
+	loggingClient *logging.Client
+	projectID     string
+	ctx           context.Context
 }
 
 // NewStackDriver create a connected StackDriver for a given project.
 func NewStackDriver(projectID string) (*StackDriver, error) {
 	ctx := context.Background()
-	client, err := stackmoni.NewMetricClient(ctx)
+	metricsClient, err := stackmoni.NewMetricClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &StackDriver{client: client, projectID: projectID, ctx: ctx}, nil
+	loggingClient, err := logging.NewClient(ctx, projectID)
+	if err != nil {
+		log.Fatalf("Failed to create client: %v", err)
+	}
+	return &StackDriver{metricsClient: metricsClient, loggingClient: loggingClient, projectID: projectID, ctx: ctx}, nil
+}
+
+// Close close both the metrics and logging client
+func (s *StackDriver) Close() error {
+	err1 := s.metricsClient.Close()
+	err2 := s.loggingClient.Close()
+	if err1 == nil {
+		return err2
+	}
+	if err2 == nil {
+		return err1
+	}
+	return errors.New(err1.Error() + ":" + err2.Error())
 }
 
 // SendReport will sends metrics to StackDriver using measurements of a samples.
@@ -136,7 +156,7 @@ func newTimeSeries(dataPoint *monitoringpb.Point,
 }
 
 func (s *StackDriver) createTimeSeries(timeSeries []*monitoringpb.TimeSeries) error {
-	return s.client.CreateTimeSeries(s.ctx, &monitoringpb.CreateTimeSeriesRequest{
+	return s.metricsClient.CreateTimeSeries(s.ctx, &monitoringpb.CreateTimeSeriesRequest{
 		Name:       stackmoni.MetricProjectPath(s.projectID),
 		TimeSeries: timeSeries,
 	})
@@ -152,4 +172,15 @@ func newDatapoint(when time.Time, d float64) *monitoringpb.Point {
 			Value: &monitoringpb.TypedValue_DoubleValue{DoubleValue: d},
 		},
 	}
+}
+
+// LogReport sends the report to Stackdriver Logging.
+// The metadata of the configuration should have a value for the key "log_name".
+func (s *StackDriver) LogReport(report hazana.RunReport) {
+	entry := logging.Entry{Payload: report}
+	logname, ok := report.Configuration.Metadata["log_name"]
+	if !ok {
+		logname = s.projectID + "-missing-log_name.log"
+	}
+	s.loggingClient.Logger(logname).Log(entry)
 }
