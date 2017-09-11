@@ -178,6 +178,8 @@ func newDatapoint(when time.Time, d float64) *monitoringpb.Point {
 // The metadata of the configuration should have a value for the key "log_name".
 func (s *StackDriver) LogReport(report hazana.RunReport) {
 	entry := logging.Entry{Payload: report}
+	entry.Severity = logging.Info
+	entry.Labels = report.Configuration.Metadata
 	logname, ok := report.Configuration.Metadata["log_name"]
 	if !ok {
 		logname = s.projectID + "-missing-log_name.log"
