@@ -35,4 +35,6 @@ func main() {
 		log.Fatal("failed to send metrics ", err)
 	}
 	driver.LogReport(report)
+
+	driver.Close()
 }
