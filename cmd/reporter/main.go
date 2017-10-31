@@ -35,7 +35,9 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to send metrics ", err)
 	}
-	log.Println("[hazana stackdriver reporting] send log entry")
+	log.Printf("[hazana stackdriver reporting] send log entry on project [%s] and global log [%s]\n",
+		report.Configuration.Metadata["project_id"],
+		report.Configuration.Metadata["log_name"])
 	driver.LogReport(report)
 
 	driver.Close()
