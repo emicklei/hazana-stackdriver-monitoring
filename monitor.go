@@ -1,6 +1,7 @@
 package monitoring
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -21,9 +22,9 @@ func NewMonitor(a hazana.Attack) *Monitor {
 }
 
 // Do is part of hazana.Attack
-func (m *Monitor) Do() hazana.DoResult {
+func (m *Monitor) Do(ctx context.Context) hazana.DoResult {
 	before := time.Now()
-	result := m.Attack.Do()
+	result := m.Attack.Do(ctx)
 	after := time.Now()
 	m.mutex.Lock()
 	points, ok := m.dataPoints[result.RequestLabel]

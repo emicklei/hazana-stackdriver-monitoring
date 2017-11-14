@@ -87,13 +87,13 @@ func TestSendReport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := d.Send(r); err != nil {
+	if err := d.SendReport(r); err != nil {
 		t.Error(err)
 	}
 	req := stm.GetMetricDescriptorRequest{
 		Name: fmt.Sprintf("projects/%s/metricDescriptors/custom.googleapis.com/myservice2", project),
 	}
-	resp, _ := d.client.GetMetricDescriptor(context.Background(), &req)
+	resp, _ := d.metricsClient.GetMetricDescriptor(context.Background(), &req)
 	t.Logf("%#v", resp)
 
 	lr := stm.ListTimeSeriesRequest{
@@ -107,6 +107,6 @@ func TestSendReport(t *testing.T) {
 			},
 		},
 	}
-	ts := d.client.ListTimeSeries(context.Background(), &lr)
+	ts := d.metricsClient.ListTimeSeries(context.Background(), &lr)
 	t.Logf("%#v", ts)
 }
