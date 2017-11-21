@@ -57,7 +57,7 @@ func (s *StackDriver) SendReport(report hazana.RunReport) error {
 	if report.Metrics == nil || len(report.Metrics) == 0 {
 		return nil
 	}
-	metricType := s.metricType(report.Configuration)
+	metricType := s.MetricType(report.Configuration)
 	resource := s.newResource(report.Configuration)
 
 	timeSeries := []*monitoringpb.TimeSeries{}
@@ -96,7 +96,7 @@ func (s *StackDriver) SendMonitor(monitor *Monitor, config hazana.Config) error 
 	resource := s.newResource(config)
 	for label, points := range monitor.dataPoints {
 		metric := &metricpb.Metric{
-			Type: s.metricType(config),
+			Type: s.MetricType(config),
 			Labels: map[string]string{
 				"requestLabel": label,
 				"field":        "duration",
@@ -118,7 +118,7 @@ func (s *StackDriver) SendMonitor(monitor *Monitor, config hazana.Config) error 
 	return nil
 }
 
-func (s *StackDriver) metricType(config hazana.Config) string {
+func (s *StackDriver) MetricType(config hazana.Config) string {
 	metricType, ok := config.Metadata["metric.type"]
 	if !ok {
 		metricType = "custom.googleapis.com/missing-metric-type"

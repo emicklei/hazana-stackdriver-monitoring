@@ -30,7 +30,7 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to create driver ", err)
 	}
-	log.Println("[hazana stackdriver reporting] send metrics")
+	log.Printf("[hazana stackdriver reporting] send metrics to [%s]\n", driver.MetricType(report.Configuration))
 	err = driver.SendReport(report)
 	if err != nil {
 		log.Fatal("failed to send metrics ", err)
