@@ -42,4 +42,9 @@ func main() {
 
 	driver.Close()
 	log.Println("[hazana stackdriver reporting] done")
+
+	if report.Failed {
+		log.Println("[hazana stackdriver reporting] exit(1)")
+		os.Exit(1)
+	}
 }
