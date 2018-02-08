@@ -12,9 +12,13 @@ import (
 )
 
 func main() {
-	log.Println("[hazana stackdriver reporting] read report")
+	file := "report.json"
+	if len(os.Args) >= 2 {
+		file = os.Args[1]
+	}
+	log.Println("[hazana stackdriver reporting] read report ",file)
 	// pick up a report from the arg and send it to stackdriver (metrics + logging)
-	data, err := ioutil.ReadFile(os.Args[1])
+	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Fatal("reading report failed ", err)
 	}
