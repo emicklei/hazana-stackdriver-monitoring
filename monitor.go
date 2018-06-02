@@ -9,17 +9,16 @@ import (
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
-// Monitor is a Attack decorator that send metrics to graphite
+// Monitor is an Attack decorator that send latency metrics to Stackdriver
 type Monitor struct {
 	hazana.Attack
-	driver     *StackDriver
 	mutex      *sync.Mutex
 	dataPoints map[string][]*monitoringpb.Point
 }
 
 // NewMonitor returns a new Monitor decoration on an Attack
-func NewMonitor(a hazana.Attack, s *StackDriver) *Monitor {
-	return &Monitor{Attack: a, driver: s, dataPoints: map[string][]*monitoringpb.Point{}, mutex: new(sync.Mutex)}
+func NewMonitor(a hazana.Attack) *Monitor {
+	return &Monitor{Attack: a, dataPoints: map[string][]*monitoringpb.Point{}, mutex: new(sync.Mutex)}
 }
 
 // Do is part of hazana.Attack
@@ -48,7 +47,6 @@ func (m *Monitor) Clone() hazana.Attack {
 	return &Monitor{
 		Attack: m.Attack.Clone(),
 		// share the rest
-		driver:     m.driver,
 		mutex:      m.mutex,
 		dataPoints: m.dataPoints,
 	}

@@ -3,6 +3,8 @@ package monitoring
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -75,27 +77,27 @@ var report = `
 }`
 
 func TestSendReport(t *testing.T) {
-	t.Skip() // first change YOURPROJECT into a StackDriver enabled GCP project
-	// second, change the finishedAt time in the JSON report above to match the current time.
+	project := os.Getenv("GCP_PROJECT")
 	r := hazana.RunReport{}
 	if err := json.NewDecoder(strings.NewReader(report)).Decode(&r); err != nil {
 		t.Fatal("cannot read JSON ", err)
 	}
-	d, err := NewStackDriver("YOURPROJECT")
+	r.FinishedAt = time.Now()
+	d, err := NewStackDriver(project)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := d.Send(r); err != nil {
+	if err := d.SendReport(r); err != nil {
 		t.Error(err)
 	}
 	req := stm.GetMetricDescriptorRequest{
-		Name: "projects/YOURPROJECT/metricDescriptors/custom.googleapis.com/myservice2",
+		Name: fmt.Sprintf("projects/%s/metricDescriptors/custom.googleapis.com/myservice2", project),
 	}
-	resp, _ := d.client.GetMetricDescriptor(context.Background(), &req)
+	resp, _ := d.metricsClient.GetMetricDescriptor(context.Background(), &req)
 	t.Logf("%#v", resp)
 
 	lr := stm.ListTimeSeriesRequest{
-		Name: "projects/YOURPROJECT",
+		Name: "projects/" + project,
 		Interval: &stm.TimeInterval{
 			StartTime: &google_protobuf2.Timestamp{
 				Seconds: (time.Now().Add(-60 * time.Second)).Unix(),
@@ -105,6 +107,6 @@ func TestSendReport(t *testing.T) {
 			},
 		},
 	}
-	ts := d.client.ListTimeSeries(context.Background(), &lr)
+	ts := d.metricsClient.ListTimeSeries(context.Background(), &lr)
 	t.Logf("%#v", ts)
 }
