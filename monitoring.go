@@ -69,6 +69,8 @@ func (s *StackDriver) SendReport(report hazana.RunReport) error {
 			{key: "mean", value: float64(each.Latencies.Mean.Nanoseconds()) / 1.0e6}, // ms
 			{key: "max", value: float64(each.Latencies.Max.Nanoseconds()) / 1.0e6},   // ms
 			{key: "99th", value: float64(each.Latencies.P99.Nanoseconds()) / 1.0e6},  // ms
+			{key: "95th", value: float64(each.Latencies.P95.Nanoseconds()) / 1.0e6},  // ms
+			{key: "50th", value: float64(each.Latencies.P50.Nanoseconds()) / 1.0e6},  // ms
 			{key: "success", value: each.Success * 100},
 			{key: "count", value: float64(each.Requests)},
 			{key: "rate", value: float64(each.Rate)},
